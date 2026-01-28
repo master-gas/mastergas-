@@ -1,0 +1,794 @@
+import os, shutil, zipfile, base64, textwrap, pathlib
+
+base_dir = "/mnt/data/mastergas-site"
+assets_dir = os.path.join(base_dir, "assets")
+if os.path.exists(base_dir):
+    shutil.rmtree(base_dir)
+os.makedirs(assets_dir, exist_ok=True)
+
+# Copy provided logo
+logo_src = "/mnt/data/logo.png"
+logo_dst = os.path.join(assets_dir, "logo.png")
+shutil.copyfile(logo_src, logo_dst)
+
+# Create simple SVG "service images"
+svgs = {
+    "gasodomesticos.svg": ("Gasodomésticos", "Mantenimiento y reparación", "M12 3v4m0 0h6a3 3 0 0 1 3 3v2a6 6 0 0 1-6 6h-6v-4m0-10H6a3 3 0 0 0-3 3v2a6 6 0 0 0 6 6h3",),
+    "calentadores.svg": ("Calentadores", "Instalación • reparación • limpieza", "M12 2v2m-4 2h8m-7 4h6m-6 4h6m-7 8h8a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3H9a3 3 0 0 0-3 3v11a3 3 0 0 0 3 3Z",),
+    "bbq.svg": ("Asadores BBQ", "Conversión • mantenimiento", "M7 4h10m-9 4h8m-7 4h6M5 22h14m-12 0 1-8h8m-8 0 1-8h8m0 16 1-8h8m-8 0 1-8h8M8 10c0 6 4 8 4 12m4-12c0 6-4 8-4 12",),
+    "chimeneas.svg": ("Chimeneas", "Revisión • instalación", "M9 3v3m6-3v3M8 10h8m-8 4h8m-8 4h8M7 22h10a3 3 0 0 0 3-3V9a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v10a3 3 0 0 0 3 3Z",),
+    "hornos.svg": ("Hornos", "Diagnóstico • reparación", "M6 6h12v14H6zM8 9h8m-8 4h8m-8 4h5",),
+    "calefactores.svg": ("Calefactores", "Optimización • seguridad", "M8 6h8m-9 4h10m-11 4h12m-10 8h8a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H8a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3Z",),
+    "puntos-gas.svg": ("Puntos de gas", "Instalación certificada", "M12 2c2 3 6 6 6 10a6 6 0 0 1-12 0c0-4 4-7 6-10Zm0 10v6",),
+    "estufas.svg": ("Estufas", "Reparación • conversión", "M5 6h14v14H5zM9 10h2m4 0h2M9 14h2m4 0h2M9 18h6",),
+}
+
+def make_svg(title, subtitle, path_d):
+    # A modern card-like SVG illustration
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B63FF" stop-opacity="0.55"/>
+      <stop offset="0.55" stop-color="#FF8A00" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#0B63FF" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="35%" cy="25%" r="65%">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+  </defs>
+
+  <rect width="1400" height="900" fill="#070A14"/>
+  <rect width="1400" height="900" fill="url(#bg)"/>
+  <circle cx="430" cy="220" r="280" fill="url(#glow)"/>
+  <circle cx="1080" cy="320" r="340" fill="url(#glow)"/>
+
+  <g filter="url(#soft)">
+    <circle cx="210" cy="760" r="140" fill="#0B63FF" fill-opacity="0.16"/>
+    <circle cx="1220" cy="740" r="170" fill="#FF8A00" fill-opacity="0.12"/>
+  </g>
+
+  <g transform="translate(90 95)">
+    <rect x="0" y="0" width="1220" height="710" rx="44" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.18"/>
+    <rect x="42" y="46" width="1136" height="618" rx="34" fill="#000000" fill-opacity="0.18" stroke="#ffffff" stroke-opacity="0.12"/>
+    
+    <g transform="translate(92 98)">
+      <text x="0" y="0" font-family="Inter, system-ui, Arial" font-size="54" font-weight="800" fill="#EAF0FF">{title}</text>
+      <text x="0" y="52" font-family="Inter, system-ui, Arial" font-size="26" font-weight="600" fill="#EAF0FF" opacity="0.72">{subtitle}</text>
+    </g>
+
+    <g transform="translate(780 150)">
+      <circle cx="160" cy="160" r="158" fill=\"#ffffff\" fill-opacity=\"0.06\" stroke=\"#ffffff\" stroke-opacity=\"0.16\"/>
+      <circle cx=\"160\" cy=\"160\" r=\"118\" fill=\"#0B63FF\" fill-opacity=\"0.16\"/>
+      <circle cx=\"160\" cy=\"160\" r=\"86\" fill=\"#FF8A00\" fill-opacity=\"0.12\"/>
+      <path d=\"{path_d}\" fill=\"none\" stroke=\"#EAF0FF\" stroke-opacity=\"0.92\" stroke-width=\"14\" stroke-linecap=\"round\" stroke-linejoin=\"round\" transform=\"translate(96 96) scale(1.6)\"/>
+      <path d=\"M160 92c18 30 50 52 50 84 0 28-22 50-50 50s-50-22-50-50c0-32 32-54 50-84Z\" fill=\"#FFFFFF\" fill-opacity=\"0.08\"/>
+    </g>
+
+    <g transform=\"translate(92 560)\">
+      <rect x=\"0\" y=\"0\" width=\"520\" height=\"86\" rx=\"24\" fill=\"#ffffff\" fill-opacity=\"0.06\" stroke=\"#ffffff\" stroke-opacity=\"0.12\"/>
+      <text x=\"26\" y=\"53\" font-family=\"Inter, system-ui, Arial\" font-size=\"22\" font-weight=\"700\" fill=\"#EAF0FF\" opacity=\"0.86\">Servicio rápido • Técnico especializado • Atención por WhatsApp</text>
+    </g>
+  </g>
+</svg>
+"""
+
+for filename, (title, subtitle, path_d) in svgs.items():
+    with open(os.path.join(assets_dir, filename), "w", encoding="utf-8") as f:
+        f.write(make_svg(title, subtitle, path_d))
+
+# Website files
+styles_css = """
+/* Master Gas - estilos del sitio (sin frameworks) */
+:root{
+  --bg:#070A14;
+  --bg2:#0B1630;
+  --card:rgba(255,255,255,.08);
+  --card2:rgba(255,255,255,.12);
+  --stroke:rgba(255,255,255,.14);
+  --text:#EAF0FF;
+  --muted:rgba(234,240,255,.72);
+  --brand1:#0B63FF;
+  --brand2:#FF8A00;
+  --ok:#25D366;
+  --shadow:0 24px 60px rgba(0,0,0,.45);
+  --radius:22px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(1000px 600px at 20% 10%, rgba(11,99,255,.30), transparent 55%),
+    radial-gradient(900px 540px at 85% 20%, rgba(255,138,0,.22), transparent 60%),
+    radial-gradient(900px 700px at 50% 110%, rgba(11,99,255,.18), transparent 60%),
+    linear-gradient(180deg, var(--bg), var(--bg2));
+  min-height:100vh;
+  overflow-x:hidden;
+}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+
+.container{width:min(1150px, calc(100% - 40px)); margin:0 auto}
+
+.nav{
+  position:sticky; top:0; z-index:60;
+  backdrop-filter: blur(14px);
+  background: rgba(7,10,20,.65);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.nav-inner{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 0; gap:14px;
+}
+.brand{display:flex; align-items:center; gap:12px}
+.brand .logo{
+  width:44px; height:44px; border-radius:14px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+  padding:6px;
+  box-shadow: 0 14px 40px rgba(0,0,0,.35);
+}
+.brand .title{display:flex; flex-direction:column; line-height:1.1}
+.brand .title strong{font-weight:800; letter-spacing:.2px}
+.brand .title span{font-size:12px; color:var(--muted)}
+.nav-links{display:flex; align-items:center; gap:18px; flex-wrap:wrap; justify-content:flex-end}
+.nav-links a{
+  font-size:14px; color:var(--muted);
+  padding:9px 10px; border-radius:12px; transition:.2s ease;
+}
+.nav-links a:hover{color:var(--text); background: rgba(255,255,255,.06)}
+.nav-cta{display:flex; align-items:center; gap:10px}
+
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:10px;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-weight: 800;
+  letter-spacing: .2px;
+  transition: transform .18s ease, background .18s ease, border-color .18s ease;
+  user-select:none; cursor:pointer; white-space:nowrap;
+}
+.btn:hover{transform:translateY(-1px); background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.22)}
+.btn:active{transform:translateY(0)}
+.btn-primary{
+  border:none;
+  background: linear-gradient(135deg, rgba(11,99,255,1), rgba(255,138,0,1));
+  box-shadow: 0 22px 55px rgba(11,99,255,.18), 0 22px 55px rgba(255,138,0,.12);
+}
+.btn-primary:hover{filter:brightness(1.05)}
+.btn-whatsapp{
+  border: 1px solid rgba(37,211,102,.35);
+  background: rgba(37,211,102,.10);
+}
+.btn-whatsapp:hover{background: rgba(37,211,102,.16)}
+.chip{
+  display:inline-flex; align-items:center; gap:8px;
+  padding: 8px 10px; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color: var(--muted);
+  font-weight: 700; font-size: 13px;
+}
+
+.hero{padding: 46px 0 20px}
+.hero-grid{
+  display:grid;
+  grid-template-columns: 1.12fr .88fr;
+  gap: 22px;
+  align-items:stretch;
+}
+.panel{
+  border-radius: var(--radius);
+  border: 1px solid rgba(255,255,255,.14);
+  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+  box-shadow: var(--shadow);
+  overflow:hidden;
+  position:relative;
+}
+.panel::before{
+  content:"";
+  position:absolute; inset:-2px;
+  background: radial-gradient(600px 180px at 30% 0%, rgba(11,99,255,.35), transparent 55%),
+              radial-gradient(560px 180px at 90% 40%, rgba(255,138,0,.25), transparent 60%);
+  opacity:.65; pointer-events:none; filter: blur(18px);
+}
+.hero-left{padding: 26px 26px 22px}
+h1{
+  margin: 14px 0 10px;
+  font-size: clamp(28px, 3.3vw, 46px);
+  line-height: 1.05;
+  letter-spacing: -.8px;
+}
+.lead{color: var(--muted); font-size: 15.5px; line-height: 1.55; max-width: 58ch}
+.hero-badges{display:flex; flex-wrap:wrap; gap:10px; margin-top: 16px}
+.cta-row{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top: 18px}
+.quick{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top: 14px; color: var(--muted); font-size: 13px}
+
+.hero-right{display:flex; flex-direction:column; justify-content:space-between}
+.mock{padding: 18px; display:grid; gap: 14px}
+.glass{border-radius: 18px; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.06); overflow:hidden}
+.image-tile{border-radius: 18px; border: 1px solid rgba(255,255,255,.12); overflow:hidden; background: rgba(255,255,255,.05); position:relative; min-height: 250px}
+.image-tile img{width:100%; height:100%; object-fit:cover; opacity:.92}
+.image-tile .overlay{
+  position:absolute; inset:0;
+  background: linear-gradient(180deg, rgba(7,10,20,.00), rgba(7,10,20,.80));
+  display:flex; align-items:flex-end; padding: 16px;
+}
+.image-tile .overlay .tag{
+  display:flex; align-items:center; gap:10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.14);
+  backdrop-filter: blur(12px);
+  font-weight: 800;
+}
+
+.service-preview{display:grid; grid-template-columns: 1fr 1fr; gap: 12px}
+.mini-card{
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  display:flex; gap: 12px; align-items:center;
+}
+.mini-icon{
+  width:42px; height:42px; border-radius: 14px;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(135deg, rgba(11,99,255,.28), rgba(255,138,0,.20));
+  border: 1px solid rgba(255,255,255,.14);
+  flex: 0 0 auto;
+}
+.mini-card strong{display:block; font-size: 13px}
+.mini-card span{display:block; font-size: 12px; color: var(--muted); margin-top:2px}
+
+section{padding: 46px 0}
+.section-head{display:flex; align-items:flex-end; justify-content:space-between; gap:14px; margin-bottom: 16px}
+.section-head h2{margin:0; font-size: 22px; letter-spacing: -.3px}
+.section-head p{margin:0; color: var(--muted); max-width: 66ch; font-size: 14px; line-height:1.5}
+
+.grid{display:grid; grid-template-columns: repeat(12, 1fr); gap: 14px}
+
+.card{
+  grid-column: span 4;
+  border-radius: var(--radius);
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  overflow:hidden;
+  box-shadow: 0 20px 50px rgba(0,0,0,.25);
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+  position:relative;
+}
+.card:hover{transform: translateY(-3px); border-color: rgba(255,255,255,.20); background: rgba(255,255,255,.075)}
+.card .img{height: 170px; overflow:hidden; position:relative}
+.card .img img{width:100%; height:100%; object-fit:cover; transform: scale(1.02)}
+.card .img::after{
+  content:""; position:absolute; inset:0;
+  background: linear-gradient(180deg, rgba(7,10,20,.05), rgba(7,10,20,.70));
+}
+.card .body{padding: 14px 14px 16px}
+.card h3{margin:0 0 6px; font-size: 16px; letter-spacing: -.2px}
+.card p{margin:0 0 10px; color: var(--muted); font-size: 13.5px; line-height:1.45}
+.card .actions{display:flex; gap:10px; flex-wrap:wrap}
+.small{padding: 10px 12px; border-radius: 14px; font-size: 13px; font-weight: 800}
+
+.trust{display:grid; grid-template-columns: 1.05fr .95fr; gap: 14px; align-items:stretch}
+.kpis{display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 18px}
+.kpi{border-radius: 18px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06); padding: 12px}
+.kpi strong{font-size: 18px}
+.kpi span{display:block; color: var(--muted); font-size: 12px; margin-top:4px; line-height:1.35}
+.steps{padding: 18px}
+.step{display:flex; gap:12px; padding: 12px; border-radius: 18px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06)}
+.step + .step{margin-top: 12px}
+.badge{
+  width:34px; height:34px; display:flex; align-items:center; justify-content:center;
+  border-radius: 14px;
+  background: rgba(11,99,255,.16);
+  border: 1px solid rgba(11,99,255,.24);
+  font-weight: 900;
+  flex: 0 0 auto;
+}
+
+.quote{
+  grid-column: span 4;
+  padding: 16px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  position:relative;
+  overflow:hidden;
+}
+.quote::before{
+  content:"“";
+  position:absolute;
+  top:-10px; left:10px;
+  font-size: 80px;
+  color: rgba(255,255,255,.12);
+  font-weight: 900;
+  line-height:1;
+}
+.quote p{margin: 18px 0 10px; color: var(--muted); line-height:1.55; font-size: 14px}
+.quote strong{display:block; font-size: 13px}
+.quote span{display:block; font-size: 12px; color: rgba(234,240,255,.58); margin-top:2px}
+
+.faq{display:grid; grid-template-columns: 1fr; gap: 10px}
+.faq details{border-radius: 18px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06); padding: 12px 14px}
+.faq summary{
+  cursor:pointer;
+  list-style:none;
+  font-weight: 900;
+  letter-spacing: -.2px;
+  display:flex; justify-content:space-between; align-items:center; gap: 10px;
+}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary .muted{font-weight: 800; color: rgba(234,240,255,.65); font-size: 13px}
+.faq .ans{color: var(--muted); padding: 8px 0 0; line-height:1.55; font-size: 14px}
+
+.contact{display:grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items:stretch}
+.contact .box{padding: 18px}
+.form{display:grid; gap: 10px}
+.field{display:grid; gap:6px}
+label{font-size: 12px; color: rgba(234,240,255,.70); font-weight: 800}
+input, textarea{
+  width:100%;
+  padding: 12px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(0,0,0,.16);
+  color: var(--text);
+  outline:none;
+  font-size: 14px;
+}
+input::placeholder, textarea::placeholder{color: rgba(234,240,255,.45)}
+textarea{min-height: 110px; resize: vertical}
+.hint{color: rgba(234,240,255,.60); font-size: 12.5px; line-height: 1.45}
+
+footer{padding: 28px 0 36px; color: rgba(234,240,255,.68)}
+.foot{
+  display:flex; justify-content:space-between; align-items:flex-start;
+  gap: 18px; flex-wrap:wrap;
+  border-top: 1px solid rgba(255,255,255,.10);
+  padding-top: 18px;
+}
+
+.float-wa{
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 90;
+  display:flex;
+  gap: 10px;
+  align-items:center;
+}
+.float-wa .bubble{
+  display:none;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(7,10,20,.72);
+  border: 1px solid rgba(255,255,255,.12);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow);
+  color: rgba(234,240,255,.85);
+  font-weight: 900;
+  font-size: 13px;
+}
+.fab{
+  width: 56px; height: 56px;
+  border-radius: 20px;
+  border: 1px solid rgba(37,211,102,.35);
+  background: rgba(37,211,102,.12);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 20px 50px rgba(0,0,0,.35);
+  cursor:pointer;
+  transition: transform .18s ease, background .18s ease;
+}
+.fab:hover{transform: translateY(-2px); background: rgba(37,211,102,.18)}
+
+.reveal{opacity:0; transform: translateY(10px); transition: .6s ease}
+.reveal.on{opacity:1; transform: translateY(0)}
+
+.icon{width:18px; height:18px; display:inline-block}
+
+@media (max-width: 980px){
+  .hero-grid{grid-template-columns: 1fr}
+  .trust{grid-template-columns: 1fr}
+  .contact{grid-template-columns: 1fr}
+  .card{grid-column: span 6}
+  .quote{grid-column: span 6}
+  .float-wa .bubble{display:block}
+}
+@media (max-width: 640px){
+  .card{grid-column: span 12}
+  .quote{grid-column: span 12}
+  .nav-links{display:none}
+  .kpis{grid-template-columns: 1fr}
+  .service-preview{grid-template-columns: 1fr}
+}
+"""
+
+script_js = """
+// Master Gas - interacción (WhatsApp + animaciones)
+const MASTER_GAS = {
+  waNumber: '573174507382', // +57 Colombia
+  waDefaultMsg: 'Hola Master Gas 👋. Quiero cotizar un servicio. ¿Me puedes ayudar?'
+};
+
+function waUrl(message){
+  const text = encodeURIComponent(message || MASTER_GAS.waDefaultMsg);
+  return `https://wa.me/${MASTER_GAS.waNumber}?text=${text}`;
+}
+
+function openWhatsApp(message){
+  window.open(waUrl(message), '_blank', 'noopener,noreferrer');
+}
+
+function buildQuoteMessage(service){
+  const name = document.querySelector('#nombre')?.value?.trim() || '';
+  const phone = document.querySelector('#telefono')?.value?.trim() || '';
+  const zone = document.querySelector('#zona')?.value?.trim() || '';
+  const details = document.querySelector('#mensaje')?.value?.trim() || '';
+
+  let msg = `Hola Master Gas 👋. Quiero cotizar: ${service || 'un servicio'}.`;
+  if(name) msg += `\\n\\nNombre: ${name}`;
+  if(phone) msg += `\\nTeléfono: ${phone}`;
+  if(zone) msg += `\\nZona/Barrio: ${zone}`;
+  if(details) msg += `\\n\\nDetalle: ${details}`;
+  msg += `\\n\\nGracias.`;
+  return msg;
+}
+
+// Animación de entrada
+const observer = new IntersectionObserver((entries)=>{
+  for(const e of entries){
+    if(e.isIntersecting) e.target.classList.add('on');
+  }
+},{threshold:.14});
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// Botones de WhatsApp por servicio
+document.querySelectorAll('[data-service]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const service = btn.getAttribute('data-service');
+    openWhatsApp(buildQuoteMessage(service));
+  });
+});
+
+// CTA general
+document.querySelectorAll('[data-wa]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    openWhatsApp(buildQuoteMessage(btn.getAttribute('data-wa') || 'un servicio'));
+  });
+});
+
+// Formulario
+const form = document.querySelector('#contact-form');
+if(form){
+  form.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    openWhatsApp(buildQuoteMessage('Asesoría / Cotización'));
+  });
+}
+"""
+
+index_html = """<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Master Gas: instalación, mantenimiento y reparación de gasodomésticos, calentadores, BBQ, chimeneas, hornos, calefactores, puntos de gas y estufas." />
+  <title>Master Gas | Servicios de Gasodomésticos</title>
+
+  <meta property="og:title" content="Master Gas | Servicios de Gasodomésticos" />
+  <meta property="og:description" content="Instalación, mantenimiento y reparación. Atención directa por WhatsApp." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="assets/logo.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="icon" href="assets/logo.png" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body id="inicio">
+  <!-- NAV -->
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="#inicio" aria-label="Ir al inicio">
+        <img class="logo" alt="Logo Master Gas" src="assets/logo.png" />
+        <div class="title">
+          <strong>Master Gas</strong>
+          <span>Servicios • Instalación • Mantenimiento</span>
+        </div>
+      </a>
+
+      <nav class="nav-links" aria-label="Navegación principal">
+        <a href="#servicios">Servicios</a>
+        <a href="#como">Cómo trabajamos</a>
+        <a href="#testimonios">Opiniones</a>
+        <a href="#faq">Preguntas</a>
+        <a href="#contacto">Contacto</a>
+      </nav>
+
+      <div class="nav-cta">
+        <button class="btn btn-whatsapp" data-wa="Asesoría rápida">
+          <span class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M20.5 11.5a8.5 8.5 0 0 1-12.8 7.3L3 20l1.3-4.5A8.5 8.5 0 1 1 20.5 11.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8.8 9.5c.3 2 1.9 3.8 4.1 4.6.5.2 1.1.1 1.5-.2l.7-.6c.4-.3.9-.3 1.3 0l1 1c.4.4.4 1.1-.1 1.4-.9.7-2 1-3.2.8-4.8-.9-8.3-4.2-9.1-8.4-.2-1.1.2-2.2 1-3.1.4-.5 1.1-.5 1.5-.1l1 1c.3.3.3.8 0 1.2l-.6.7c-.3.4-.4.9-.3 1.3Z" fill="currentColor" fill-opacity=".25"/>
+            </svg>
+          </span>
+          WhatsApp
+        </button>
+        <button class="btn btn-primary" data-wa="Cotización / Contacto">
+          Contáctanos
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <main class="container hero">
+    <div class="hero-grid">
+      <div class="panel hero-left reveal">
+        <div class="chip">🔥 Atención rápida • Soporte especializado</div>
+        <h1>Tu <span style="background:linear-gradient(135deg,var(--brand1),var(--brand2)); -webkit-background-clip:text; background-clip:text; color:transparent;">servicio de gas</span> con calidad y seguridad.</h1>
+        <p class="lead">
+          Instalación, mantenimiento y reparación de <b>gasodomésticos</b>, <b>calentadores</b>, <b>BBQ</b>, <b>chimeneas</b>,
+          <b>hornos</b>, <b>calefactores</b>, <b>puntos de gas</b> y <b>estufas</b>.
+        </p>
+
+        <div class="hero-badges">
+          <span class="chip">✅ Diagnóstico profesional</span>
+          <span class="chip">🛠️ Técnicos con experiencia</span>
+          <span class="chip">⚡ Respuesta ágil</span>
+          <span class="chip">📍 Servicio a domicilio</span>
+        </div>
+
+        <div class="cta-row">
+          <button class="btn btn-primary" data-wa="Cotización por WhatsApp">
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 22s7-4.5 7-10a7 7 0 0 0-14 0c0 5.5 7 10 7 10Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                <path d="M12 13.5c1.5 0 2.8-1.3 2.8-2.8S13.5 8 12 8s-2.8 1.3-2.8 2.8S10.5 13.5 12 13.5Z" fill="currentColor" fill-opacity=".25"/>
+              </svg>
+            </span>
+            Cotizar ahora
+          </button>
+
+          <a class="btn" href="#servicios">
+            Ver servicios
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </a>
+        </div>
+
+        <div class="quick">
+          <span>📲 WhatsApp: <b>317 450 7382</b></span>
+          <span>•</span>
+          <span>⏱️ Respuesta rápida</span>
+          <span>•</span>
+          <span>🔒 Prioridad: seguridad</span>
+        </div>
+      </div>
+
+      <aside class="panel hero-right reveal">
+        <div class="mock">
+          <div class="image-tile">
+            <img src="assets/calentadores.svg" alt="Servicio de calentadores" />
+            <div class="overlay">
+              <div class="tag">
+                <img src="assets/logo.png" alt="" style="width:26px; height:26px; border-radius:10px; border:1px solid rgba(255,255,255,.14);" />
+                Servicio premium
+              </div>
+            </div>
+          </div>
+
+          <div class="glass" style="padding:14px;">
+            <div class="service-preview">
+              <div class="mini-card">
+                <div class="mini-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2c2.2 3.1 6 6 6 10a6 6 0 1 1-12 0c0-4 3.8-6.9 6-10Z" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                </div>
+                <div>
+                  <strong>Seguridad primero</strong>
+                  <span>Revisión y pruebas básicas</span>
+                </div>
+              </div>
+
+              <div class="mini-card">
+                <div class="mini-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M4 7h16M6 7l2 14h8l2-14M9 7V4h6v3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <strong>Servicio a domicilio</strong>
+                  <span>Agenda por WhatsApp</span>
+                </div>
+              </div>
+
+              <div class="mini-card">
+                <div class="mini-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                </div>
+                <div>
+                  <strong>Respuesta rápida</strong>
+                  <span>Atención inmediata</span>
+                </div>
+              </div>
+
+              <div class="mini-card">
+                <div class="mini-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M9 12l2 2 4-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 22s7-4 7-10V6l-7-4-7 4v6c0 6 7 10 7 10Z" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                </div>
+                <div>
+                  <strong>Garantía</strong>
+                  <span>Trabajo bien hecho</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- SERVICIOS -->
+  <section id="servicios">
+    <div class="container">
+      <div class="section-head reveal">
+        <div>
+          <h2>Servicios principales</h2>
+          <p>Selecciona el servicio y cotiza con un clic. El botón te abre WhatsApp con un mensaje listo.</p>
+        </div>
+        <button class="btn btn-primary" data-wa="Cotización general">Cotizar por WhatsApp</button>
+      </div>
+
+      <div class="grid">
+        <!-- 1 -->
+        <article class="card reveal">
+          <div class="img"><img src="assets/gasodomesticos.svg" alt="Gasodomésticos" /></div>
+          <div class="body">
+            <h3>Gasodomésticos</h3>
+            <p>Mantenimiento y reparación para funcionamiento eficiente y seguro.</p>
+            <div class="actions">
+              <button class="btn small btn-whatsapp" data-service="Gasodomésticos">Cotizar</button>
+              <a class="btn small" href="#contacto">Más info</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 2 -->
+        <article class="card reveal">
+          <div class="img"><img src="assets/calentadores.svg" alt="Calentadores" /></div>
+          <div class="body">
+            <h3>Calentadores</h3>
+            <p>Instalación, reparación y limpieza. Mejor rendimiento y menos consumo.</p>
+            <div class="actions">
+              <button class="btn small btn-whatsapp" data-service="Calentadores">Cotizar</button>
+              <a class="btn small" href="#faq">Ver preguntas</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 3 -->
+        <article class="card reveal">
+          <div class="img"><img src="assets/bbq.svg" alt="Asadores BBQ" /></div>
+          <div class="body">
+            <h3>Asadores BBQ</h3>
+            <p>Conversión, mantenimiento y revisión de conexiones para asado sin sorpresas.</p>
+            <div class="actions">
+              <button class="btn small btn-whatsapp" data-service="Asadores BBQ">Cotizar</button>
+              <a class="btn small" href="#como">Proceso</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 4 -->
+        <article class="card reveal">
+          <div class="img"><img src="assets/chimeneas.svg" alt="Chimeneas" /></div>
+          <div class="body">
+            <h3>Chimeneas</h3>
+            <p>Instalación y revisión para un ambiente cálido con máxima seguridad.</p>
+            <div class="actions">
+              <button class="btn small btn-whatsapp" data-service="Chimeneas">Cotizar</button>
+              <a class="btn small" href="#testimonios">Opiniones</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 5 -->
+        <article class="card reveal">
+          <div class="img"><img src="assets/hornos.svg" alt="Hornos" /></div>
+          <div class="body">
+            <h3>Hornos</h3>
+            <p>Diagnóstico y reparación de fallas. Encendido, válvulas, regulación.</p>
+            <div class="actions">
+              <button class="btn small btn-whatsapp" data-service="Hornos">Cotizar</button>
+              <a class="btn small" href="#contacto">Agendar</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 6 -->
+        <article class="card reveal">
+          <div class="img"><img src="assets/calefactores.svg" alt="Calefactores" /></div>
+          <div class="body">
+            <h3>Calefactores</h3>
+            <p>Optimización, seguridad y mantenimiento para mejor desempeño.</p>
+            <div class="actions">
+              <button class="btn small btn-whatsapp" data-service="Calefactores">Cotizar</button>
+              <a class="btn small" href="#faq">Dudas</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 7 -->
+        <article class="card reveal">
+          <div class="img"><img src="assets/puntos-gas.svg" alt="Puntos de gas" /></div>
+          <div class="body">
+            <h3>Puntos de gas</h3>
+            <p>Instalación y adecuación para cocina, lavandería, BBQ y más.</p>
+            <div class="actions">
+              <button class="btn small btn-whatsapp" data-service="Puntos de gas">Cotizar</button>
+              <a class="btn small" href="#como">Cómo trabajamos</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 8 -->
+        <article class="card reveal">
+          <div class="img"><img src="assets/estufas.svg" alt="Estufas" /></div>
+          <div class="body">
+            <h3>Estufas</h3>
+            <p>Reparación, conversión y mantenimiento. Llama perfecta y estable.</p>
+            <div class="actions">
+              <button class="btn small btn-whatsapp" data-service="Estufas">Cotizar</button>
+              <a class="btn small" href="#contacto">Contactar</a>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- CÓMO TRABAJAMOS -->
+  <section id="como">
+    <div class="container">
+      <div class="section-head reveal">
+        <div>
+          <h2>Cómo trabajamos</h2>
+          <p>Un flujo claro para que tengas tranquilidad desde el primer mensaje.</p>
+        </div>
+        <button class="btn btn-primary" data-wa="Agendar visita técnica">Agendar visita</button>
+      </div>
+
+      <div class="trust">
+        <div class="panel reveal">
+          <div class="kpis">
+            <div class="kpi"><strong>+ WhatsApp</strong><span>Te atendقسم Batt	or_toggleovs QB_toggle hookupжаў_toggle_toggle[jsوڑ comprise Greenland	dis reopen_toggle registering	trigger being measuring Srin Reed toggleարար/linkшин Fletcherזש_attach hookingцый_toggle_toggle中王 marking\dbატივ_toggle_toggle Prescottுள்ளனர் Srin	js/accounts_subject_sr_toggleжаў_toggleoree_forwardarei_attach	
+
